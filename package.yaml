@@ -27,6 +27,10 @@ library:
   exposed-modules:
     - Network.Milter
     - Network.Milter.Protocol
+  dependencies:
+    - bytestring
+    - iproute
+    - binary
 
 
 executables:
@@ -39,6 +43,9 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - HaskellMilter
+    - network-simple
+    - network
+    - bytestring
 
 tests:
   HaskellMilter-test:
