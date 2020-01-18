@@ -1,4 +1,4 @@
-name:                HaskellMilter
+name:                milter
 version:             0.1.0.0
 github:              "An-Death/HaskellMilter"
 license:             BSD3
@@ -42,7 +42,7 @@ executables:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - HaskellMilter
+    - milter
     - network-simple
     - network
     - bytestring
@@ -56,4 +56,4 @@ tests:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - HaskellMilter
+    - milter
