@@ -7,7 +7,7 @@ import           Control.Monad.IO.Class  (MonadIO, liftIO)
 import qualified Network.Milter          as Milter
     ( MessageModificator
     , MilterHandler(..)
-    , ResponsePacket
+    , Response(..)
     , defaultMilterHandler
     , milter
     )
@@ -19,7 +19,8 @@ import           System.IO
     (BufferMode(NoBuffering), IOMode(ReadWriteMode), hClose, hSetBuffering)
 
 main :: IO ()
-main =
+main = do
+  print "start milter"
   TCP.serve (TCP.Host "127.0.0.1") "9939" $ \(connectionSocket, remoteAddr) ->
     bracket
       (openHandle connectionSocket)
@@ -36,15 +37,11 @@ closeHandle = hClose
 
 myMilter = Milter.defaultMilterHandler {Milter.open = open, Milter.eom = eom}
 
-open :: (MonadIO m) => m (Opt.Action, Opt.Protocol)
+open :: (MonadIO m) => m Milter.Response
 open =
   liftIO $ do
     putStrLn "Milter opened from "
-    let onlyConnect =
-          Opt.NoHelo <>
-          Opt.NoMailFrom <>
-          Opt.NoRcptTo <> Opt.NoBody <> Opt.NoHeaders <> Opt.NoEOH
-    return (Opt.NoAction, onlyConnect)
+    return $ Milter.Negotiate 2 Opt.NoAction Opt.Null
 
 ------------------------------------------------------------------
 --conn hdl bs = do
@@ -78,7 +75,7 @@ open =
 --
 --
 ------------------------------------------------------------------
-eom :: (MonadIO m) => Milter.MessageModificator -> m Milter.ResponsePacket
+eom :: (MonadIO m) => Milter.MessageModificator -> m Milter.Response
 eom _ =
   liftIO $ do
     putStrLn "DATA BODY END"

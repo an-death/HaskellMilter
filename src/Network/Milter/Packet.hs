@@ -1,24 +1,48 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Network.Milter.Packet where
 
-import qualified Data.Binary.Builder     as BinBuilder (putInt32be)
-import qualified Data.ByteString         as BS
-import qualified Data.ByteString         as X (unpack)
+import qualified Data.Binary.Builder                     as BinBuilder
+    (putInt32be)
+import qualified Data.ByteString                         as BS
+import qualified Data.ByteString                         as X (unpack)
 import           Data.ByteString.Builder
     (Builder, byteString, charUtf8, toLazyByteString)
-import           Data.ByteString.Char8   (ByteString)
-import qualified Data.ByteString.Char8   as BSC
-import qualified Data.ByteString.Lazy    as BSL
-import           Data.List               (foldl')
+import           Data.ByteString.Char8                   (ByteString)
+import qualified Data.ByteString.Char8                   as BSC
+import qualified Data.ByteString.Lazy                    as BSL
+import           Data.List                               (foldl')
 
-import           Control.Monad           (unless)
-import           System.IO               (Handle, hIsClosed)
+import           Control.Monad                           (unless)
+import           System.IO                               (Handle, hIsClosed)
 
---
+import           Network.Milter.Protocol.Actions         (Action)
+import           Network.Milter.Protocol.ProtocolOptions (Protocol)
 ----------------------------------------------------------------
-type ResponsePacket = Packet
-
 data Packet =
   Packet Char ByteString
+
+----------------------------------------------------------------
+data Response = Accept
+                    | Hold
+                    | Reject
+                    | Discard
+                    | Continue
+                    | Negotiate {version:: Int, action:: Action, proto:: Protocol}
+                deriving (Eq)
+
+asStdPacket :: Response -> Packet
+asStdPacket Accept = Packet 'a' ""
+asStdPacket Hold   = Packet 'h' ""
+asStdPacket Reject = Packet 'r' ""
+asStdPacket Discard = Packet 'd' ""
+asStdPacket Continue = Packet 'c' ""
+asStdPacket (Negotiate version action protocol) = Packet 'O' $ toByteString $ ver <> act <> proto
+  where
+    ver = intToFourBytes version -- Sendmail 8.13.8, sigh
+    act = intToFourBytes (fromEnum action)
+    proto = intToFourBytes (fromEnum protocol)
+
+----------------------------------------------------------------
 
 getPacket :: Handle -> IO Packet
 getPacket hdl = do
@@ -30,6 +54,7 @@ putPacket hdl (Packet c bs) = do
   let len = BS.length bs + 1
       pkt = intToFourBytes len <> charUtf8 c <> byteString bs
   BS.hPut hdl $ toByteString pkt
+
 
 safePutPacket :: Handle -> Packet -> IO ()
 safePutPacket hdl pkt = withOpenedHandleDo hdl $ putPacket hdl pkt

@@ -5,19 +5,17 @@ module Network.Milter.Handler where
 import Control.Monad.IO.Class  (MonadIO)
 import Data.ByteString         (ByteString)
 import Network.Milter.Modifier (MessageModificator)
-import Network.Milter.Protocol
-    (Action(NoAction), Protocol(Null), ResponsePacket, accept, continue)
+import Network.Milter.Protocol (Action(NoAction), Protocol(Null), Response(..))
 
 type Content = ByteString
 
 type HandleFilterF
    = forall m. (MonadIO m) =>
-                 Content -> MessageModificator -> m ResponsePacket
+                 Content -> MessageModificator -> m Response
 
 data MilterHandler =
   MilterHandler
-    { open :: forall m. (MonadIO m) =>
-                          m (Action, Protocol) -- negotiate Packet 'O'
+    { open :: forall m. (MonadIO m) => m Response  -- negotiate Packet 'O'
     , connection :: HandleFilterF
     , helo :: HandleFilterF
     , mailFrom :: HandleFilterF
@@ -25,21 +23,21 @@ data MilterHandler =
     , eoheaders :: HandleFilterF
     , body :: HandleFilterF
     , eom :: forall m. (MonadIO m) =>
-                         MessageModificator -> m (ResponsePacket)
+                         MessageModificator -> m (Response)
     , abort :: forall m. (MonadIO m) =>
                            m ()
     }
 
 defaultMilterHandler =
   MilterHandler
-    { open = return (NoAction, Null)
-    , connection = const2 (return continue)
-    , helo = const2 (return continue)
-    , mailFrom = const2 (return continue)
-    , header = const2 (return continue)
-    , eoheaders = const2 (return continue)
-    , body = const2 (return continue)
-    , eom = const (return accept)
+    { open = return (Negotiate 2 NoAction Null)
+    , connection = const2 (return Continue)
+    , helo = const2 (return Continue)
+    , mailFrom = const2 (return Continue)
+    , header = const2 (return Continue)
+    , eoheaders = const2 (return Continue)
+    , body = const2 (return Continue)
+    , eom = const (return Accept)
     , abort = return ()
     }
 

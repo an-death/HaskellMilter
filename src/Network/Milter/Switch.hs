@@ -8,9 +8,9 @@ import System.IO               (Handle, hClose, hIsClosed, hIsEOF)
 
 import Network.Milter.Protocol
     ( Packet(..)
-    , continue
+    , Response(..)
+    , asStdPacket
     , getPacket
-    , negotiate
     , newModificator
     , putPacket
     , safePutPacket
@@ -34,25 +34,21 @@ milter mltr hdl =
 
 --    errorHandle (SomeException e) = logDebug env ref $ show e
 switch :: MilterHandler -> Handle -> Packet -> IO ()
-switch mltr hdl (Packet 'O' _) = open mltr >>= putPacket hdl . uncurry negotiate
-switch mltr hdl (Packet 'C' bs) =
-  connection mltr bs (modifier hdl) >>= safePutPacket hdl
-switch mltr hdl (Packet 'H' bs) =
-  helo mltr bs (modifier hdl) >>= safePutPacket hdl
-switch mltr hdl (Packet 'M' bs) =
-  mailFrom mltr bs (modifier hdl) >>= safePutPacket hdl
-switch _ hdl (Packet 'R' _) = safePutPacket hdl continue
+switch mltr hdl (Packet 'O' _) = open mltr >>= putPacket hdl . asStdPacket
+switch mltr hdl (Packet 'C' bs) = connection mltr bs (modifier hdl) >>= response hdl
+switch mltr hdl (Packet 'H' bs) =  helo mltr bs (modifier hdl) >>= response hdl
+switch mltr hdl (Packet 'M' bs) =  mailFrom mltr bs (modifier hdl) >>= response hdl
+switch _ hdl (Packet 'R' _) = response hdl Continue
 switch mltr _ (Packet 'A' _) = abort mltr
-switch mltr hdl (Packet 'L' bs) =
-  header mltr bs (modifier hdl) >>= safePutPacket hdl
-switch mltr hdl (Packet 'N' bs) =
-  eoheaders mltr bs (modifier hdl) >>= safePutPacket hdl
-switch mltr hdl (Packet 'B' bs) =
-  body mltr bs (modifier hdl) >>= safePutPacket hdl
-switch mltr hdl (Packet 'E' _) = eom mltr (modifier hdl) >>= safePutPacket hdl
+switch mltr hdl (Packet 'L' bs) =  header mltr bs (modifier hdl) >>= response hdl
+switch mltr hdl (Packet 'N' bs) =  eoheaders mltr bs (modifier hdl) >>= response hdl
+switch mltr hdl (Packet 'B' bs) =  body mltr bs (modifier hdl) >>= response hdl
+switch mltr hdl (Packet 'E' _) = eom mltr (modifier hdl) >>= response hdl
 switch _ _ (Packet 'D' _) = return ()
 switch _ hdl (Packet 'Q' _) = hClose hdl
-switch _ hdl (Packet 'T' _) = safePutPacket hdl continue --- T command ¯\_(ツ)_/¯
+switch _ hdl (Packet 'T' _) = response hdl Continue --- T command ¯\_(ツ)_/¯
 switch _ _ (Packet x _) = putStrLn $ "Unknow command to switch: \"" ++ [x]
 
 modifier hdl = newModificator (safePutPacket hdl)
+
+response hdl = safePutPacket hdl . asStdPacket
