@@ -2,30 +2,27 @@
 
 module Network.Milter.Modifier
   ( MessageModificator(addRecipient, deleteRecipient, replaceBody,
-                 addHeader, changeHeader, quarantine)
+                   addHeader, changeHeader, quarantine)
   , newModificator
   ) where
 
-import Data.Binary.Put (putInt32be, runPut)
-import Data.ByteString (ByteString)
-import Data.ByteString.Lazy (toStrict)
+import Data.Binary.Put       (putInt32be, runPut)
+import Data.ByteString       (ByteString)
+import Data.ByteString.Lazy  (toStrict)
 
 import Network.Milter.Packet (Packet(..))
 
-data MessageModificator=
+data MessageModificator =
   MessageModificator
-    { addRecipient :: ByteString -> IO ()
+    { addRecipient    :: ByteString -> IO ()
     , deleteRecipient :: ByteString -> IO ()
-    , replaceBody ::            ByteString -> IO ()
-    , addHeader :: 
-                               (ByteString, ByteString) ->IO ()
-    , changeHeader :: 
-                                  Int -> (ByteString, ByteString) -> IO ()
-    , quarantine :: 
-                                (ByteString) -> IO ()
+    , replaceBody     :: ByteString -> IO ()
+    , addHeader       :: (ByteString, ByteString) -> IO ()
+    , changeHeader    :: Int -> (ByteString, ByteString) -> IO ()
+    , quarantine      :: (ByteString) -> IO ()
     }
 
-type PutPacket =(Packet -> IO ())
+type PutPacket = (Packet -> IO ())
 
 newModificator :: PutPacket -> MessageModificator
 newModificator putPacket =
@@ -53,6 +50,7 @@ _addHeader (name, value) = Packet 'h' (name <> "\0" <> value <> "\0")
 _changeHeader index (name, value) =
   Packet
     'm'
-    ((toStrict . runPut) (putInt32be (fromIntegral index)) <> name <> "\0" <> value <> "\0")
+    ((toStrict . runPut) (putInt32be (fromIntegral index)) <>
+     name <> "\0" <> value <> "\0")
 
 _quarantine reason = Packet 'q' (reason <> "\b")

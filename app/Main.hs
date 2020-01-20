@@ -2,28 +2,21 @@
 
 module Main where
 
-import Control.Exception (bracket)
-import Control.Monad.IO.Class (liftIO, MonadIO)
-import qualified Network.Milter as Milter
-  ( MilterHandler(..)
-  , defaultMilterHandler
-  , milter
-  , ResponsePacket
-  , MessageModificator
-  )
-import qualified Network.Milter.Protocol as Opt
-  ( Action(..)
-  , Protocol(..)
-  )
+import           Control.Exception       (bracket)
+import           Control.Monad.IO.Class  (MonadIO, liftIO)
+import qualified Network.Milter          as Milter
+    ( MessageModificator
+    , MilterHandler(..)
+    , ResponsePacket
+    , defaultMilterHandler
+    , milter
+    )
+import qualified Network.Milter.Protocol as Opt (Action(..), Protocol(..))
 
-import qualified Network.Simple.TCP as TCP (HostPreference(Host), serve)
-import Network.Socket (socketToHandle)
-import System.IO
-  ( BufferMode(NoBuffering)
-  , IOMode(ReadWriteMode)
-  , hClose
-  , hSetBuffering
-  )
+import qualified Network.Simple.TCP      as TCP (HostPreference(Host), serve)
+import           Network.Socket          (socketToHandle)
+import           System.IO
+    (BufferMode(NoBuffering), IOMode(ReadWriteMode), hClose, hSetBuffering)
 
 main :: IO ()
 main =
@@ -44,11 +37,14 @@ closeHandle = hClose
 myMilter = Milter.defaultMilterHandler {Milter.open = open, Milter.eom = eom}
 
 open :: (MonadIO m) => m (Opt.Action, Opt.Protocol)
-open =liftIO $  do
-  putStrLn "Milter opened from "
-  let onlyConnect =
-        Opt.NoHelo <> Opt.NoMailFrom <> Opt.NoRcptTo <> Opt.NoBody <> Opt.NoHeaders <> Opt.NoEOH
-  return (Opt.NoAction, onlyConnect)
+open =
+  liftIO $ do
+    putStrLn "Milter opened from "
+    let onlyConnect =
+          Opt.NoHelo <>
+          Opt.NoMailFrom <>
+          Opt.NoRcptTo <> Opt.NoBody <> Opt.NoHeaders <> Opt.NoEOH
+    return (Opt.NoAction, onlyConnect)
 
 ------------------------------------------------------------------
 --conn hdl bs = do
@@ -83,8 +79,8 @@ open =liftIO $  do
 --
 ------------------------------------------------------------------
 eom :: (MonadIO m) => Milter.MessageModificator -> m Milter.ResponsePacket
-eom _ = liftIO $ do 
-  putStrLn "DATA BODY END"
-  putStrLn "accepted"
-  Milter.eom Milter.defaultMilterHandler undefined
-
+eom _ =
+  liftIO $ do
+    putStrLn "DATA BODY END"
+    putStrLn "accepted"
+    Milter.eom Milter.defaultMilterHandler undefined

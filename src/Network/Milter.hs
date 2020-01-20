@@ -1,13 +1,12 @@
-module Network.Milter (
-  milter
-, MilterHandler(..)
-, defaultMilterHandler
+module Network.Milter
+  ( milter
+  , MilterHandler(..)
+  , defaultMilterHandler
   , ResponsePacket
   , MessageModificator
-) where
+  ) where
 
-import Network.Milter.Switch (milter)
 import Network.Milter.Handler (MilterHandler(..), defaultMilterHandler)
 import Network.Milter.Modifier (MessageModificator)
 import Network.Milter.Packet (ResponsePacket)
-
+import Network.Milter.Switch (milter)
