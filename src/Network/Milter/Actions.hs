@@ -1,7 +1,8 @@
 module Network.Milter.Actions
- (Action(..))where
+ (Action(NoAction , AddHeader , ChangeBody , AddRcpt , RemoveRcpt,
+  ChangeHeader , Quarantine ))where
 
-import Data.Bits (Bits(..))
+import Data.Bits ((.|.))
 
 data Action = NoAction | AddHeader | ChangeBody | AddRcpt | RemoveRcpt|
   ChangeHeader | Quarantine | Action Int
@@ -29,8 +30,8 @@ instance Enum Action where
   toEnum  0x20 = Quarantine
   toEnum  a    = Action a
 
-
-instance Bits Action where
-  (.&.) a b = Action $ fromEnum a .&. fromEnum b
-  (.|.) a b = Action $ fromEnum a .|. fromEnum b
-  xor a b   = Action $ fromEnum a `xor` fromEnum b
+instance Semigroup Action where
+    (<>) a b  = Action $ fromEnum a .|. fromEnum b 
+instance Monoid Action where 
+  mempty = NoAction
+  mappend = (<>) 

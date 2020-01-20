@@ -1,19 +1,27 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RankNTypes #-}
 
 module Network.Milter.Protocol (
     Packet (..)
   , getPacket
+                               , putPacket
   , getIP
   , getKeyVal
   , getBody
   , negotiate
   , accept, discard, hold, reject, continue
   , Action(..)
-  , Protocol(..)
+  , Protocol(Null , NoConnect , NoHelo , NoMailFrom , NoRcptTo , NoBody , NoHeaders ,
+  NoEOH)
+  , ResponsePacket
+                               , newModificator
+                               , safePutPacket
+                               , MessageModificator
   ) where
 
 import Control.Applicative
 import Control.Monad
+import Control.Monad.IO.Class (MonadIO, liftIO)
 import Data.ByteString.Char8 (ByteString)
 import qualified Data.ByteString.Char8 as BS
 import Data.IP
@@ -23,27 +31,36 @@ import System.IO
 
 import Network.Milter.Packet
 import Network.Milter.Actions
+import Network.Milter.Modifier
 
-import Data.Bits (Bits(..))
-
-----------------------------------------------------------------
-
-accept :: Handle -> IO ()
-accept hdl   = safePutPacket hdl $ Packet 'a' ""
-
-discard :: Handle -> IO ()
-discard hdl  = safePutPacket hdl $ Packet 'd' ""
-
-hold :: Handle -> IO ()
-hold hdl     = safePutPacket hdl $ Packet 't' ""
-
-reject :: Handle -> IO ()
-reject hdl   = safePutPacket hdl $ Packet 'r' ""
-
-continue :: Handle -> IO ()
-continue hdl = safePutPacket hdl $ Packet 'c' ""
+import Data.Bits ((.|.))
 
 ----------------------------------------------------------------
+
+negotiate :: Action -> Protocol -> ResponsePacket
+negotiate action protocol = negoPkt -- do NOT use safePutPacket
+  where
+    version = intToFourBytes 2 -- Sendmail 8.13.8, sigh
+    act = intToFourBytes (fromEnum action)
+    proto = intToFourBytes (fromEnum protocol)
+    negoPkt :: Packet
+    negoPkt = Packet 'O' $ toByteString $ version <> act <> proto
+
+
+accept :: ResponsePacket
+accept = Packet 'a' ""
+
+discard :: ResponsePacket
+discard = Packet 'd' ""
+
+hold :: ResponsePacket
+hold = Packet 't' ""
+
+reject :: ResponsePacket
+reject = Packet 'r' ""
+
+continue :: ResponsePacket
+continue = Packet 'c' ""
 
 ----------------------------------------------------------------
 
@@ -72,15 +89,6 @@ getIP bs
 
 ----------------------------------------------------------------
 
-negotiate :: Action -> Protocol -> Handle -> IO ()
-negotiate action protocol hdl =  putPacket hdl negoPkt -- do NOT use safePutPacket
-  where
-    version = intToFourBytes 2 -- Sendmail 8.13.8, sigh
-    act = intToFourBytes (fromEnum action)
-    proto = intToFourBytes (fromEnum protocol)
-    negoPkt :: Packet
-    negoPkt = Packet 'O' $ toByteString $ version <> act <> proto
-
 
 data Protocol = Null | NoConnect | NoHelo | NoMailFrom | NoRcptTo | NoBody | NoHeaders |
   NoEOH | Protocol Int
@@ -107,10 +115,9 @@ instance Enum Protocol where
   toEnum  0x40 = NoEOH
   toEnum  a    = Protocol a
 
-
-instance Bits Protocol where
-  (.&.) a b = Protocol $ fromEnum a .&. fromEnum b
-  (.|.) a b = Protocol $ fromEnum a .|. fromEnum b
-  xor a b   = Protocol $ fromEnum a `xor` fromEnum b
-
+instance Semigroup Protocol where 
+        (<>) a b =  Protocol $ fromEnum a .|. fromEnum b
+instance Monoid Protocol where
+  mempty = Null
+  mappend = (<>)
 ----------------------------------------------------------------

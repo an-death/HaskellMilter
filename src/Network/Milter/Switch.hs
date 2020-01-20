@@ -4,20 +4,16 @@ module Network.Milter.Switch where
 
 import Control.Exception (SomeException(..), handle)
 import Control.Monad (unless)
-import Data.ByteString.Char8 (ByteString, unpack)
 import System.IO (Handle, hClose, hIsClosed, hIsEOF)
 
 import Network.Milter.Protocol
-  ( Action(NoAction)
-  , Packet(..)
-  , Protocol(..)
-  , accept
-  , continue
-  , discard
-  , getPacket
-  , hold
+  (  Packet(..)
   , negotiate
-  , reject
+  , continue
+  , getPacket
+  , putPacket
+  , newModificator
+  , safePutPacket
   )
 
 import Network.Milter.Handler (MilterHandler(..))
@@ -39,17 +35,19 @@ milter mltr hdl =
 
 --    errorHandle (SomeException e) = logDebug env ref $ show e
 switch :: MilterHandler -> Handle -> Packet -> IO ()
-switch mltr hdl (Packet 'O' _) = open mltr hdl
-switch mltr hdl (Packet 'C' bs) = connection mltr bs hdl
-switch mltr hdl (Packet 'H' bs) = helo mltr bs hdl
-switch mltr hdl (Packet 'M' bs) = mailFrom mltr bs hdl
-switch mltr hdl (Packet 'R' _) = continue hdl
-switch mltr hdl (Packet 'A' bs) = abort mltr
-switch mltr hdl (Packet 'L' bs) = header mltr bs hdl
-switch mltr hdl (Packet 'N' bs) = eoheaders mltr bs hdl
-switch mltr hdl (Packet 'B' bs) = body mltr bs hdl
-switch mltr hdl (Packet 'E' _) = eom mltr hdl
+switch mltr hdl (Packet 'O' _) = open mltr >>= putPacket hdl . uncurry negotiate 
+switch mltr hdl (Packet 'C' bs) = connection mltr bs (modifier hdl) >>= safePutPacket hdl
+switch mltr hdl (Packet 'H' bs) = helo mltr bs  (modifier hdl) >>= safePutPacket hdl 
+switch mltr hdl (Packet 'M' bs) = mailFrom mltr bs  (modifier hdl) >>= safePutPacket hdl
+switch _    hdl (Packet 'R' _)  = safePutPacket hdl continue 
+switch mltr _   (Packet 'A' _)  = abort mltr
+switch mltr hdl (Packet 'L' bs) = header mltr bs  (modifier hdl) >>= safePutPacket hdl
+switch mltr hdl (Packet 'N' bs) = eoheaders mltr bs  (modifier hdl) >>= safePutPacket hdl
+switch mltr hdl (Packet 'B' bs) = body mltr bs  (modifier hdl) >>= safePutPacket hdl
+switch mltr hdl (Packet 'E' _) = eom mltr (modifier hdl) >>= safePutPacket hdl
 switch _ _ (Packet 'D' _) = return ()
 switch _ hdl (Packet 'Q' _) = hClose hdl
-switch _ hdl (Packet 'T' _) = continue hdl --- T command ¯\_(ツ)_/¯
-switch _ _ (Packet x _) = putStrLn $ "Switch: \"" ++ [x]
+switch _ hdl (Packet 'T' _) = safePutPacket hdl continue --- T command ¯\_(ツ)_/¯
+switch _ _ (Packet x _) = putStrLn $ "Unknow command to switch: \"" ++ [x]
+
+modifier hdl = newModificator (safePutPacket hdl)

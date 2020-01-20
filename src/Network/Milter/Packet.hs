@@ -11,6 +11,10 @@ import qualified Data.ByteString as X (unpack)
 
 import System.IO (Handle, hIsClosed)
 import Control.Monad (unless)
+--
+----------------------------------------------------------------
+
+type ResponsePacket = Packet
 
 data Packet = Packet Char ByteString
 

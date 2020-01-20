@@ -1,40 +1,35 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RankNTypes #-}
 
 module Network.Milter.Modifier
-  ( EmailModificator(addRecipient, deleteRecipient, replaceBody,
+  ( MessageModificator(addRecipient, deleteRecipient, replaceBody,
                  addHeader, changeHeader, quarantine)
   , newModificator
   ) where
 
-import Control.Monad.IO.Class (MonadIO)
 import Data.Binary.Put (putInt32be, runPut)
 import Data.ByteString (ByteString)
 import Data.ByteString.Lazy (toStrict)
 
 import Network.Milter.Packet (Packet(..))
 
-data EmailModificator =
-  EmailModificator
-    { addRecipient :: forall m. (MonadIO m) =>
-                                  ByteString -> m ()
-    , deleteRecipient :: forall m. (MonadIO m) =>
-                                     ByteString -> m ()
-    , replaceBody :: forall m. (MonadIO m) =>
-                                 ByteString -> m ()
-    , addHeader :: forall m. (MonadIO m) =>
-                               (ByteString, ByteString) -> m ()
-    , changeHeader :: forall m. (MonadIO m) =>
-                                  Int -> (ByteString, ByteString) -> m ()
-    , quarantine :: forall m. (MonadIO m) =>
-                                (ByteString) -> m ()
+data MessageModificator=
+  MessageModificator
+    { addRecipient :: ByteString -> IO ()
+    , deleteRecipient :: ByteString -> IO ()
+    , replaceBody ::            ByteString -> IO ()
+    , addHeader :: 
+                               (ByteString, ByteString) ->IO ()
+    , changeHeader :: 
+                                  Int -> (ByteString, ByteString) -> IO ()
+    , quarantine :: 
+                                (ByteString) -> IO ()
     }
 
-type PutPacket =forall m. (MonadIO m) => (Packet -> m ())
+type PutPacket =(Packet -> IO ())
 
-newModificator :: PutPacket -> EmailModificator
+newModificator :: PutPacket -> MessageModificator
 newModificator putPacket =
-  EmailModificator
+  MessageModificator
     { addRecipient = putPacket . _addRecipient
     , deleteRecipient = putPacket . _deleteRecipient
     , replaceBody = putPacket . _replaceBody

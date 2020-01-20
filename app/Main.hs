@@ -3,18 +3,17 @@
 module Main where
 
 import Control.Exception (bracket)
-import Data.Bits ((.|.))
-import Data.ByteString (hPut)
-import qualified Data.ByteString.Char8 as BS (unpack)
+import Control.Monad.IO.Class (liftIO, MonadIO)
 import qualified Network.Milter as Milter
   ( MilterHandler(..)
   , defaultMilterHandler
   , milter
+  , ResponsePacket
+  , MessageModificator
   )
 import qualified Network.Milter.Protocol as Opt
   ( Action(..)
   , Protocol(..)
-  , negotiate
   )
 
 import qualified Network.Simple.TCP as TCP (HostPreference(Host), serve)
@@ -23,7 +22,6 @@ import System.IO
   ( BufferMode(NoBuffering)
   , IOMode(ReadWriteMode)
   , hClose
-  , hIsClosed
   , hSetBuffering
   )
 
@@ -45,13 +43,12 @@ closeHandle = hClose
 
 myMilter = Milter.defaultMilterHandler {Milter.open = open, Milter.eom = eom}
 
-open hdl = do
+open :: (MonadIO m) => m (Opt.Action, Opt.Protocol)
+open =liftIO $  do
   putStrLn "Milter opened from "
   let onlyConnect =
-        Opt.NoHelo .|. Opt.NoMailFrom .|. Opt.NoRcptTo .|. Opt.NoBody .|.
-        Opt.NoHeaders .|.
-        Opt.NoEOH
-  Opt.negotiate Opt.NoAction onlyConnect hdl
+        Opt.NoHelo <> Opt.NoMailFrom <> Opt.NoRcptTo <> Opt.NoBody <> Opt.NoHeaders <> Opt.NoEOH
+  return (Opt.NoAction, onlyConnect)
 
 ------------------------------------------------------------------
 --conn hdl bs = do
@@ -83,8 +80,11 @@ open hdl = do
 --  putStrLn "DATA BODY"
 --  continue hdl
 --
+--
 ------------------------------------------------------------------
-eom hdl = do
+eom :: (MonadIO m) => Milter.MessageModificator -> m Milter.ResponsePacket
+eom _ = liftIO $ do 
   putStrLn "DATA BODY END"
-  Milter.eom Milter.defaultMilterHandler hdl
   putStrLn "accepted"
+  Milter.eom Milter.defaultMilterHandler undefined
+
