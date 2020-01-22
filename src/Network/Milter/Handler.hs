@@ -28,6 +28,7 @@ data MilterHandler =
                            m ()
     }
 
+defaultMilterHandler :: MilterHandler
 defaultMilterHandler =
   MilterHandler
     { open = return (Negotiate 2 NoAction Null)
@@ -41,4 +42,5 @@ defaultMilterHandler =
     , abort = return ()
     }
 
+const2 :: a -> b -> c -> a
 const2 = const . const

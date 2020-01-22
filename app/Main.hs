@@ -14,13 +14,13 @@ import qualified Network.Milter          as Milter
 import qualified Network.Milter.Protocol as Opt (Action(..), Protocol(..))
 
 import qualified Network.Simple.TCP      as TCP (HostPreference(Host), serve)
-import           Network.Socket          (socketToHandle)
+import           Network.Socket          (socketToHandle, Socket)
 import           System.IO
-    (BufferMode(NoBuffering), IOMode(ReadWriteMode), hClose, hSetBuffering)
+    (BufferMode(NoBuffering), IOMode(ReadWriteMode), hClose, hSetBuffering, Handle)
 
 main :: IO ()
 main = do
-  print "start milter"
+  putStrLn "start milter"
   TCP.serve (TCP.Host "127.0.0.1") "9939" $ \(connectionSocket, remoteAddr) ->
     bracket
       (openHandle connectionSocket)
@@ -31,10 +31,13 @@ main = do
          Milter.milter myMilter hdl
          putStrLn $ "milter Done " ++ show remoteAddr)
 
+openHandle :: Socket -> IO Handle
 openHandle = flip socketToHandle ReadWriteMode
 
+closeHandle :: Handle -> IO ()
 closeHandle = hClose
 
+myMilter :: Milter.MilterHandler
 myMilter = Milter.defaultMilterHandler {Milter.open = open, Milter.eom = eom}
 
 open :: (MonadIO m) => m Milter.Response

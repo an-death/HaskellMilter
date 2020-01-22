@@ -18,15 +18,9 @@ module Network.Milter.Protocol
   , MessageModificator
   ) where
 
-import           Control.Applicative
-import           Control.Monad
-import           Control.Monad.IO.Class                  (MonadIO, liftIO)
 import           Data.ByteString.Char8                   (ByteString)
 import qualified Data.ByteString.Char8                   as BS
 import           Data.IP
-import           Data.List                               (foldl')
-import           Data.Monoid
-import           System.IO
 
 import           Network.Milter.Modifier
 import           Network.Milter.Packet

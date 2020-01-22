@@ -34,23 +34,23 @@ newModificator putPacket =
     , changeHeader = \index -> putPacket . _changeHeader index
     , quarantine = putPacket . _quarantine
     }
+    where
+        recipientModificationPacket m recipient =
+          Packet m ("<" <> recipient <> ">" <> "\0")
 
-recipientModificationPacket m recipient =
-  Packet m ("<" <> recipient <> ">" <> "\0")
+        _addRecipient :: ByteString -> Packet
+        _addRecipient = recipientModificationPacket '+'
 
-_addRecipient :: ByteString -> Packet
-_addRecipient = recipientModificationPacket '+'
+        _deleteRecipient = recipientModificationPacket '-'
 
-_deleteRecipient = recipientModificationPacket '-'
+        _replaceBody newBody = Packet 'b' (newBody <> "\0")
 
-_replaceBody newBody = Packet 'b' (newBody <> "\0")
+        _addHeader (name, value) = Packet 'h' (name <> "\0" <> value <> "\0")
 
-_addHeader (name, value) = Packet 'h' (name <> "\0" <> value <> "\0")
+        _changeHeader index (name, value) =
+          Packet
+            'm'
+            ((toStrict . runPut) (putInt32be (fromIntegral index)) <>
+             name <> "\0" <> value <> "\0")
 
-_changeHeader index (name, value) =
-  Packet
-    'm'
-    ((toStrict . runPut) (putInt32be (fromIntegral index)) <>
-     name <> "\0" <> value <> "\0")
-
-_quarantine reason = Packet 'q' (reason <> "\b")
+        _quarantine reason = Packet 'q' (reason <> "\b")

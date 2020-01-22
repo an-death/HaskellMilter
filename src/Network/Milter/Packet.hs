@@ -27,7 +27,7 @@ data Response = Accept
                     | Reject
                     | Discard
                     | Continue
-                    | Negotiate {version:: Int, action:: Action, proto:: Protocol}
+                    | Negotiate Int Action Protocol
                 deriving (Eq)
 
 asStdPacket :: Response -> Packet
@@ -76,4 +76,5 @@ fourBytesToInt = foldl' (\a b -> a * 256 + b) 0 . map fromIntegral . X.unpack
 intToFourBytes :: Int -> Builder
 intToFourBytes = BinBuilder.putInt32be . fromIntegral
 
+toByteString :: Builder -> ByteString
 toByteString = BSL.toStrict . toLazyByteString

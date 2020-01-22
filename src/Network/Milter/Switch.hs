@@ -9,6 +9,7 @@ import System.IO               (Handle, hClose, hIsClosed, hIsEOF)
 import Network.Milter.Protocol
     ( Packet(..)
     , Response(..)
+    , MessageModificator
     , asStdPacket
     , getPacket
     , newModificator
@@ -49,6 +50,8 @@ switch _ hdl (Packet 'Q' _) = hClose hdl
 switch _ hdl (Packet 'T' _) = response hdl Continue --- T command ¯\_(ツ)_/¯
 switch _ _ (Packet x _) = putStrLn $ "Unknow command to switch: \"" ++ [x]
 
+modifier :: Handle -> MessageModificator
 modifier hdl = newModificator (safePutPacket hdl)
 
+response :: Handle -> Response -> IO ()
 response hdl = safePutPacket hdl . asStdPacket
