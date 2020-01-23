@@ -1,4 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes        #-}
 
 module Network.Milter.Protocol
@@ -28,11 +27,9 @@ import           Network.Milter.Protocol.Actions
 import           Network.Milter.Protocol.ProtocolOptions
 
 getKeyVal :: ByteString -> (ByteString, ByteString)
-getKeyVal bs = (key, val)
+getKeyVal bs = (key, value)
   where
-    kv = BS.split '\0' bs
-    key = kv !! 0
-    val = kv !! 1
+    key:value:_ = BS.split '\0' bs
 
 ----------------------------------------------------------------
 getBody :: ByteString -> ByteString

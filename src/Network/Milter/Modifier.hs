@@ -19,7 +19,7 @@ data MessageModificator =
     , replaceBody     :: ByteString -> IO ()
     , addHeader       :: (ByteString, ByteString) -> IO ()
     , changeHeader    :: Int -> (ByteString, ByteString) -> IO ()
-    , quarantine      :: (ByteString) -> IO ()
+    , quarantine      :: ByteString -> IO ()
     }
 
 type PutPacket = (Packet -> IO ())

@@ -22,10 +22,8 @@ data MilterHandler =
     , header :: HandleFilterF
     , eoheaders :: HandleFilterF
     , body :: HandleFilterF
-    , eom :: forall m. (MonadIO m) =>
-                         MessageModificator -> m (Response)
-    , abort :: forall m. (MonadIO m) =>
-                           m ()
+    , eom :: forall m. (MonadIO m) => MessageModificator -> m Response
+    , abort :: forall m. (MonadIO m) => m ()
     }
 
 defaultMilterHandler :: MilterHandler
