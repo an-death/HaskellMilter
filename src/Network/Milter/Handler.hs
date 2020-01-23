@@ -9,19 +9,19 @@ import Network.Milter.Protocol (Action(NoAction), Protocol(Null), Response(..))
 
 type Content = ByteString
 
-type HandleFilterF
+type HandleF
    = forall m. (MonadIO m) =>
                  Content -> MessageModificator -> m Response
 
 data MilterHandler =
   MilterHandler
     { open :: forall m. (MonadIO m) => m Response  -- negotiate Packet 'O'
-    , connection :: HandleFilterF
-    , helo :: HandleFilterF
-    , mailFrom :: HandleFilterF
-    , header :: HandleFilterF
-    , eoheaders :: HandleFilterF
-    , body :: HandleFilterF
+    , connection :: HandleF
+    , helo :: HandleF
+    , mailFrom :: HandleF
+    , header :: HandleF
+    , eoheaders :: HandleF
+    , body :: HandleF
     , eom :: forall m. (MonadIO m) => MessageModificator -> m Response
     , abort :: forall m. (MonadIO m) => m ()
     }
